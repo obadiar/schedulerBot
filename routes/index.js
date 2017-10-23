@@ -60,6 +60,15 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
             //check token first
             var now = new Date();
             var expiryDate = new Date(user.googleProfile.expiry_date);
+            if(expiryDate < now) {
+              //refresh token
+              oauth2Client.refreshAccessToken(function(err, tokens) {
+                // your access_token is now refreshed and stored in oauth2Client
+                // store these new tokens in a safe place (e.g. database)
+                user.googleProfile = tokens;
+                user.save();
+              });
+            }
             console.log("expiryDate", expiryDate);
             var request = app.textRequest(text, {
               sessionId: user.googleProfile.access_token.slice(0,15)
@@ -72,10 +81,18 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
             request.end();
           } else{
             //send message back to user wth url to authorise Google Calendar
-            axios({
-              url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://localhost:3000/connect?auth_id=" + user._id + "&attachments="+IM,
-              method: "get"
-            })
+            if(process.env.NODE_ENV === 'production') {
+              axios({
+                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. https://enigmatic-temple-70986.herokuapp.com/connect?auth_id=" + user._id + "&attachments="+IM,
+                method: "get"
+              })
+            } else{
+              axios({
+                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://localhost:3000/connect?auth_id=" + user._id + "&attachments="+IM,
+                method: "get"
+              })
+            }
+
           }
         } else{
           //create user if they don't exist
@@ -85,10 +102,17 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
           }, function(err, user) {
             //ask them to authorise Google Calendar
             //send message back to user wth url to authorise Google Calendar
-            axios({
-              url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://localhost:3000/connect?auth_id=" + user._id + "&attachments="+IM,
-              method: "get"
-            })
+            if(process.env.NODE_ENV === 'production') {
+              axios({
+                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. https://enigmatic-temple-70986.herokuapp.com/connect?auth_id=" + user._id + "&attachments="+IM,
+                method: "get"
+              })
+            } else{
+              axios({
+                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://localhost:3000/connect?auth_id=" + user._id + "&attachments="+IM,
+                method: "get"
+              })
+            }
           })
         }
       })
