@@ -67,7 +67,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
               console.log("APIAI response", response);
             });
             request.on('error', function(error) {
-                console.log(error);
+                console.log("error", error);
             });
 
             request.end();
