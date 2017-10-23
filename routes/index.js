@@ -65,7 +65,12 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
             });
             request.on('response', function(response) {
               console.log("APIAI response", response);
-            })
+            });
+            request.on('error', function(error) {
+                console.log(error);
+            });
+
+            request.end();
           } else{
             //send message back to user wth url to authorise Google Calendar
             axios({
