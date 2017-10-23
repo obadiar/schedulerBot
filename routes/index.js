@@ -58,14 +58,13 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
           if(user.googleProfile) {
             //send request to API.AI
             //check token first
-            // var now = new Date();
-            // var expiryDate =
+            var now = new Date();
+            var expiryDate = new Date(user.googleProfile.expiry_date);
+            console.log("expiryDate", expiryDate);
             var request = app.textRequest(text, {
               sessionId: user.googleProfile.access_token.slice(0,15)
             });
-            request.on('response', function(response) {
-              console.log("APIAI response", response);
-            });
+
             request.on('error', function(error) {
                 console.log("error", error);
             });
@@ -110,9 +109,6 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
-router.post('/agent', function(req, res, next) {
-  console.log("Result from Obi", req.body);
-})
 
 router.get('/connect', function(req, res, next) {
   var userId = req.query.auth_id;
@@ -131,7 +127,11 @@ console.log("url", url);
 res.redirect(url);
 
 })
-
+router.post('/webhook', function(req, res, next) {
+  console.log("APIAI response", response);
+  var todoItem = response.parameters["thing-to-do"];
+  var time = response.parameters["time"];
+})
 router.get('/callback', function(req, res, next) {
   console.log("query", req.query);
   var code = req.query.code;
