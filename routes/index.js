@@ -61,7 +61,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
             // var now = new Date();
             // var expiryDate =
             var request = app.textRequest(text, {
-              sessionId: user.googleProfile.access_token
+              sessionId: user.googleProfile.access_token.slice(0,15)
             });
             request.on('response', function(response) {
               console.log("APIAI response", response);
