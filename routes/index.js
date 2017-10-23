@@ -153,8 +153,11 @@ res.redirect(url);
 })
 router.post('/webhook', function(req, res, next) {
   console.log("APIAI response", response);
-  var todoItem = response.parameters["thing-to-do"];
-  var time = response.parameters["time"];
+  if(response.parameters["thing-to-do"] && response.parameters["time"]) {
+    var todoItem = response.parameters["thing-to-do"];
+    var time = response.parameters["time"];
+  }
+
 })
 router.get('/callback', function(req, res, next) {
   console.log("query", req.query);
