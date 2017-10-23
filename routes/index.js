@@ -105,7 +105,9 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
-
+router.post('/agent', function(req, res, next) {
+  console.log("Result from Obi", req.body);
+})
 
 router.get('/connect', function(req, res, next) {
   var userId = req.query.auth_id;
