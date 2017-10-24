@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var models = require('../models/');
 var User = models.User;
+var Task = models.Task;
 var google = require('googleapis');
 var OAuth2 = google.auth.OAuth2;
 var apiai = require('apiai');
@@ -251,17 +252,20 @@ router.post('/IMCallback', function(req, res){
   var scheduleTime = JSON.parse(req.body.payload).original_message.attachments.filter( x => x.callback_id === "event_choice")[0].text;
   var yes_no = JSON.parse(req.body.payload).actions.filter( x => x.name === "yes_no")[0].value;
   var scheduleTitle= scheduleTime.split('Create task to')[1];
+  var scheduleItem = scheduleTitle.split('on')[0];
+  console.log("scheduleItem", scheduleItem);
   scheduleTime = scheduleTitle.split('on')[1];
   scheduleTime = scheduleTime.split('?')[0];
   scheduleTime = new Date(scheduleTime);
-  console.log("what", scheduleTitle, scheduleTime);
   var userId = JSON.parse(req.body.payload).user.id;
   User.findOne({slackId: userId}, function(err, user) {
-    console.log("user tokens", user.googleProfile);
-    createGoogleCalendar(user.googleProfile, scheduleTitle, scheduleTime);
+    Task.create({userSlackId: userId, subject: scheduleItem, date: scheduleTime}, function(err, task) {
+      createGoogleCalendar(user.googleProfile, scheduleTitle, scheduleTime);
+    });
+
   })
   if(yes_no === 'yes') {
-    res.send("Event created");
+    res.send("Event created on your Google Calendar :)");
   } else{
     res.send("Cancelled");
   }

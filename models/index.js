@@ -18,9 +18,22 @@ var UserSchema = mongoose.Schema({
   }
 })
 
-var User = mongoose.model('User', UserSchema);
+var TaskSchema = mongoose.Schema({
+  subject: {
+    type: String
+  },
+  date: {
+    type: Date
+  },
+  userSlackId: {
+    type: String
+  }
+})
 
+var User = mongoose.model('User', UserSchema);
+var Task = mongoose.model('Task', TaskSchema);
 
 module.exports = {
-  User: User
+  User: User,
+  Task: Task
 }
