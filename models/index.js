@@ -12,6 +12,9 @@ var UserSchema = mongoose.Schema({
   },
   googleProfile: {
     type: Object
+  },
+  channel: {
+    type: String
   }
 })
 
