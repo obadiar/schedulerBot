@@ -63,6 +63,11 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
             var expiryDate = new Date(user.googleProfile.expiry_date);
             if(expiryDate < now) {
               //refresh token
+              var oauth2Client = new OAuth2(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET,
+                'http://a5bb9b3d.ngrok.io/callback'
+              );
               oauth2Client.refreshAccessToken(function(err, tokens) {
                 // your access_token is now refreshed and stored in oauth2Client
                 // store these new tokens in a safe place (e.g. database)
@@ -75,7 +80,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
                   });
 
                   request.on('response', function(response) {
-                    console.log("RESPONSE", response);
+                    sendInteractiveMessage(token,channel, response);
                   });
                   request.on('error', function(error) {
                       console.log("error", error);
@@ -90,50 +95,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
               });
 
               request.on('response', function(response) {
-                if(!response.result.actionIncomplete) {
-                  if(response.result.parameters["subject"] && response.result.parameters["date"]) {
-                    var todoItem = response.result.parameters["subject"];
-                    var time = response.result.parameters["date"];
-                    var IM = [
-                       {
-                           "text": "Create task to " + todoItem + ' on ' + time + '?',
-                           "fallback": "You are unable to choose a value.",
-                           "callback_id": "event_choice",
-                           "color": "#3AA3E3 ",
-                           "attachment_type": "default",
-                           "actions": [
-                               {
-                                   "name": "yes_no",
-                                   "type": "button",
-                                   "value": "yes",
-                                   "text" : "yes",
-                               },
-                               {
-                                 "name": "yes_no",
-                                 "type": "button",
-                                 "value": "no",
-                                 "text" : "no",
-                               }
-                           ]
-                       }
-                     ]
-                     IM = JSON.stringify(IM)
-                     axios({
-                       url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text='+'Maddy' + '&attachments='+encodeURIComponent(IM),
-                       method: "get"
-                      })
-                  }
-
-                } else{
-                  console.log("gettingi n?");
-                  console.log(token);
-                  console.log("CHANNEL", channel);
-
-                  axios({
-                    url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text='+response.result.fulfillment.speech,
-                    method: "get"
-                  });
-                }
+                sendInteractiveMessage(token, channel, response);
               });
               request.on('error', function(error) {
                   console.log("error", error);
@@ -214,14 +176,59 @@ res.redirect(url);
 
 })
 
+function sendInteractiveMessage(token, channel, response) {
+  if(!response.result.actionIncomplete) {
+    if(response.result.parameters["subject"] && response.result.parameters["date"]) {
+      var todoItem = response.result.parameters["subject"];
+      var time = response.result.parameters["date"];
+      var IM = [
+         {
+             "text": "Create task to " + todoItem + ' on ' + time + '?',
+             "fallback": "You are unable to choose a value.",
+             "callback_id": "event_choice",
+             "color": "#3AA3E3 ",
+             "attachment_type": "default",
+             "title": todoItem,
+             "author_name": time,
+             "actions": [
+                 {
+                     "name": "yes_no",
+                     "type": "button",
+                     "value": "yes",
+                     "text" : "yes",
+                 },
+                 {
+                   "name": "yes_no",
+                   "type": "button",
+                   "value": "no",
+                   "text" : "no",
+                 }
+             ]
+         }
+       ]
+       IM = JSON.stringify(IM)
+       axios({
+         url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text='+'Maddy' + '&attachments='+encodeURIComponent(IM),
+         method: "get"
+        })
+    }
+
+  } else{
+
+    axios({
+      url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text='+response.result.fulfillment.speech,
+      method: "get"
+    });
+  }
+}
 function createGoogleCalendar(tokens, title, date) {
   var oauth2Client = new OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     'http://a5bb9b3d.ngrok.io/createCalendar/callback'
   );
-
   oauth2Client.setCredentials(tokens);
+  console.log("tokens", date);
   return new Promise(function(resolve, reject) {
     calendar.events.insert({
       auth: oauth2Client,
@@ -240,31 +247,32 @@ function createGoogleCalendar(tokens, title, date) {
 
     }, function(err, res) {
       if(err) {
+        console.log("ERR", err);
         reject(err);
       } else{
+        console.log("RES", res);
         resolve(tokens);
       }
     })
   })
 }
+
 router.post('/IMCallback', function(req, res){
-
-  var scheduleTime = JSON.parse(req.body.payload).original_message.attachments.filter( x => x.callback_id === "event_choice")[0].text;
+  console.log(JSON.parse(req.body.payload).original_message.attachments);
   var yes_no = JSON.parse(req.body.payload).actions.filter( x => x.name === "yes_no")[0].value;
-  var scheduleTitle= scheduleTime.split('Create task to')[1];
-  var scheduleItem = scheduleTitle.split('on')[0];
-  console.log("scheduleItem", scheduleItem);
-  scheduleTime = scheduleTitle.split('on')[1];
-  scheduleTime = scheduleTime.split('?')[0];
+  var scheduleItem = JSON.parse(req.body.payload).original_message.attachments[0].title;
+  var scheduleTime = JSON.parse(req.body.payload).original_message.attachments[0].author_name;
   scheduleTime = new Date(scheduleTime);
+  console.log("scheduleTime", scheduleTime);
   var userId = JSON.parse(req.body.payload).user.id;
-  User.findOne({slackId: userId}, function(err, user) {
-    Task.create({userSlackId: userId, subject: scheduleItem, date: scheduleTime}, function(err, task) {
-      createGoogleCalendar(user.googleProfile, scheduleTitle, scheduleTime);
-    });
 
-  })
   if(yes_no === 'yes') {
+    User.findOne({slackId: userId}, function(err, user) {
+      Task.create({userSlackId: userId, subject: scheduleItem, date: scheduleTime}, function(err, task) {
+        createGoogleCalendar(user.googleProfile, scheduleItem, scheduleTime);
+      });
+
+    });
     res.send("Event created on your Google Calendar :)");
   } else{
     res.send("Cancelled");
@@ -273,12 +281,9 @@ router.post('/IMCallback', function(req, res){
 });
 
 router.get('/callback', function(req, res, next) {
-  console.log("query", req.query);
   var code = req.query.code;
   var auth_id = req.query.state;
-  console.log("CODE", code, auth_id);
   oauth2Client.getToken(code, function(err, tokens) {
-    console.log("tokens", tokens);
     if(!err) {
       oauth2Client.setCredentials(tokens);
       User.findByIdAndUpdate(auth_id, {googleProfile: tokens}, function(err, user) {
@@ -286,7 +291,7 @@ router.get('/callback', function(req, res, next) {
         res.render('index');
       })
     } else{
-      console.log("WHAT", err);
+      console.log("Error", err);
     }
   })
 })
