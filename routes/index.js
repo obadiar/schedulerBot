@@ -71,6 +71,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
               oauth2Client.refreshAccessToken(function(err, tokens) {
                 // your access_token is now refreshed and stored in oauth2Client
                 // store these new tokens in a safe place (e.g. database)
+                console.log("ERR", err);
                 console.log("TOKENS", tokens);
                 user.googleProfile = tokens;
                 user.save(function(err, user) {
@@ -90,11 +91,18 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
                 });
               });
             } else{
+              console.log("TEXT", text);
+              if(text.indexOf('<@') > -1) {
+                axios({
+                  url: 'https://slack.com/api/chat.postMessage?token=' + token
+                })
+              }
               var request = app.textRequest(text, {
                 sessionId: user.googleProfile.access_token.slice(0,15)
               });
 
               request.on('response', function(response) {
+                console.log("RESPONSE", response);
                 sendInteractiveMessage(token, channel, response);
               });
               request.on('error', function(error) {
@@ -178,6 +186,9 @@ res.redirect(url);
 
 function sendInteractiveMessage(token, channel, response) {
   if(!response.result.actionIncomplete) {
+    if(response.result.parameters["invitees"] && response.result.parameters["date-time"]) {
+
+    }
     if(response.result.parameters["subject"] && response.result.parameters["date"]) {
       var todoItem = response.result.parameters["subject"];
       var time = response.result.parameters["date"];
@@ -229,6 +240,8 @@ function createGoogleCalendar(tokens, title, date) {
   );
   oauth2Client.setCredentials(tokens);
   console.log("tokens", date);
+  date = date.setHours(date.getHours() + 7);
+  date = new Date(date);
   return new Promise(function(resolve, reject) {
     calendar.events.insert({
       auth: oauth2Client,
