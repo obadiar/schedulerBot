@@ -645,9 +645,6 @@ router.get('/callback', function(req, res, next) {
   var auth_id = req.query.state;
 
   oauth2Client.getToken(code, function(err, tokens) {
-    console.log("TOKEN GET", tokens);
-    res.cookie('googleTokens', tokens, {maxAge: 900000})
-    console.log("req.cookies", req.cookies);
     if(!err) {
       User.findByIdAndUpdate(auth_id, {googleProfile: tokens}, function(err, user) {
         oauth2Client.setCredentials(tokens);
