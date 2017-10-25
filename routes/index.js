@@ -378,5 +378,5 @@ router.get('/callback', function(req, res, next) {
     }
   })
 })
-function z(n){return (n < 10? '0' : '') + n;};
+
 module.exports = router;
