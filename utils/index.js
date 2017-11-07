@@ -24,13 +24,14 @@ function returnBestSlots(payload ,response) {
     newDateObj["dateArr"] = [];
     possibleTimeSlots.forEach( time => {
       var newDate = new Date(day);
-      newDate.setHours(time.hours-7);
+      newDate.setHours(time.hours-8);
       newDate.setMinutes(time.minutes);
       newDate.setSeconds(0);
       newDateObj["dateArr"].push(newDate);
     });
     allSlots.push(newDateObj);
   });
+
   for(var i = 0; i < allSlots.length; i++) {
     allSlots[i]["dateArr"] = allSlots[i]["dateArr"].filter((slot) => {
       var boolean = true;
@@ -38,8 +39,7 @@ function returnBestSlots(payload ,response) {
         var d = new Date(slot);
         var UTCconverted = d.getUTCFullYear() + '-' + z(d.getUTCMonth() + 1) + '-' +
         z(d.getUTCDate()) + 'T' + z(d.getUTCHours()) + ':' +
-        z(d.getUTCMinutes()) + ':' + z(d.getUTCSeconds()) + '-07:00';
-
+        z(d.getUTCMinutes()) + ':' + z(d.getUTCSeconds()) + '-08:00';
         if(UTCconverted === item.start.dateTime) {
           boolean= false;
         }
@@ -52,7 +52,7 @@ function returnBestSlots(payload ,response) {
     var bestThree = [];
     var start = new Date(payload.name);
     start.setDate(start.getDate() + i);
-    start.setHours(start.getHours() - 7);
+    start.setHours(start.getHours() - 8);
 
     start = new Date(start);
     for(var j = 0; j < allSlots[i]["dateArr"].length; j++) {

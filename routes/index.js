@@ -15,7 +15,7 @@ const returnBestSlots = require('../utils/index').returnBestSlots;
 var oauth2Client = new OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  'http://a5bb9b3d.ngrok.io/callback'
+  'http://c6399cce.ngrok.io/callback'
 );
 var calendar = google.calendar('v3');
 // index.js
@@ -69,7 +69,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
               var oauth2Client = new OAuth2(
                 process.env.GOOGLE_CLIENT_ID,
                 process.env.GOOGLE_CLIENT_SECRET,
-                'http://a5bb9b3d.ngrok.io/callback'
+                'http://c6399cce.ngrok.io/callback'
               );
               oauth2Client.setCredentials({
                   refresh_token: user.googleProfile.refresh_token
@@ -96,6 +96,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
             } else {
               if(text.indexOf('<@') > -1) {
                 var usernames = text.match(/<@[0-9A-Z]*>/g);
+                console.log("USERNAMES", usernames);
                 usernames = usernames.map(x => {
                   var name = x.match(/[0-9A-Z]*/g).filter(x =>  (x !== ''));
                   return name[0];
@@ -155,7 +156,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
               })
             } else{
               axios({
-                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://a5bb9b3d.ngrok.io/connect?auth_id=" + user._id + "&attachments="+IM,
+                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://c6399cce.ngrok.io/connect?auth_id=" + user._id + "&attachments="+IM,
                 method: "get"
               })
             }
@@ -178,7 +179,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
               })
             } else{
               axios({
-                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://a5bb9b3d.ngrok.io/connect?auth_id=" + user._id + "&attachments="+IM,
+                url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text=Hey '+x.data.user.profile.display_name +"! This is Maddy and I'm here to help you schedule. Join this link to connect your calendars. http://c6399cce.ngrok.io/connect?auth_id=" + user._id + "&attachments="+IM,
                 method: "get"
               })
             }
@@ -225,7 +226,7 @@ res.redirect(url);
 
 
 router.post('/IMCallback', function(req, res){
-
+  console.log("req body", JSON.parse(req.body.payload));
   if(JSON.parse(req.body.payload).actions[0]["name"] ==="yes_no"){
     var yes_no = JSON.parse(req.body.payload).actions.filter( x => x.name === "yes_no")[0].value;
     var scheduleItem = JSON.parse(req.body.payload).original_message.attachments[0].title;
@@ -233,8 +234,9 @@ router.post('/IMCallback', function(req, res){
     var invitees;
     scheduleTime = new Date(scheduleTime);
     var userId = JSON.parse(req.body.payload).user.id;
-    if(JSON.parse(req.body.payload).original_message.attachments[0].pretext){
-      invitees = JSON.parse(JSON.parse(req.body.payload).original_message.attachments[0].pretext).invitees;
+    console.log("JSON parse", JSON.parse(req.body.payload).original_message.attachments[0]);
+    if(JSON.parse(req.body.payload).original_message.attachments[0].callback_id){
+      invitees = JSON.parse(JSON.parse(req.body.payload).original_message.attachments[0].callback_id).invitees;
       axios({
         url: 'https://slack.com/api/users.list?token=' + token,
         method: 'get'
@@ -287,17 +289,18 @@ router.post('/IMCallback', function(req, res){
     const channel = JSON.parse(req.body.payload).channel.id;
     const date = JSON.parse(req.body.payload).actions[0].selected_options[0].value.split("T")[0];
     var  dateTime = new Date(JSON.parse(req.body.payload).actions[0].selected_options[0].value);
+    console.log("another dateTime", dateTime);
     var time = dateTime.getHours() + 7;
     var IM = [
        {
            "text": "Create meeting to discuss " + subject + ' with ' + invitees.join(', ')+' on ' + date + ' at ' + time+ '.00?',
            "fallback": "You are unable to choose a value.",
-           "callback_id": "event_choice",
+           "callback_id": JSON.stringify({invitees}),
            "color": "#3AA3E3 ",
            "attachment_type": "default",
            "title": subject,
            "author_name": dateTime,
-           "pretext": JSON.stringify({invitees}),
+           "value": JSON.stringify({invitees}),
            "actions": [
                {
                    "name": "yes_no",
@@ -325,19 +328,18 @@ router.post('/IMCallback', function(req, res){
 });
 
 router.post('/getData', function(req, res) {
-  var oauth2Client = new OAuth2(
+  var oauth2ClientOriginal = new OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    'http://a5bb9b3d.ngrok.io/createCalendar/callback'
+    'http://c6399cce.ngrok.io/createCalendar/callback'
   );
-  console.log("req", req.body);
   var payload = JSON.parse(req.body.payload);
   User.findOne({slackId: payload.user.id}, function(err, user) {
     if(err) {
       console.log("Err", err);
 
     }
-    oauth2Client.setCredentials(user.googleProfile);
+    oauth2ClientOriginal.setCredentials(user.googleProfile);
     var date = new Date(payload.name);
 
     // date.setHours(date.getHours());
@@ -345,17 +347,65 @@ router.post('/getData', function(req, res) {
     console.log("REQ", req.body);
     var endDate = new Date(payload.name);
     endDate.setDate(endDate.getDate() + 7);
-    calendar.events.list({
-      auth: oauth2Client,
-      calendarId: 'primary',
-      timeMin: startDate.toISOString(),
-      timeMax: endDate.toISOString()
-    }, function(err, response) {
-      var bestSlots = returnBestSlots(payload, response, calendar);
-      res.send({
-        options: bestSlots
+    axios({
+      url: 'https://slack.com/api/users.list?token=' + token,
+      method: 'get'
+    })
+    .then(function(response) {
+      console.log("Members", response.data.members);
+      const members = response.data.members;
+      const invitees = JSON.parse(payload.callback_id).invitees;
+      let allResponses = [];
+      async.each(members, function(member, callback) {
+        if(invitees.indexOf(member.profile.first_name) > -1) {
+          User.findOne({slackId: member.id})
+          .then(function(user) {
+            console.log("USER", user);
+            return user.googleProfile;
+          })
+          .then(function(tokens) {
+            console.log("TOKENS?", tokens);
+            var oauth2Client = new OAuth2(
+              process.env.GOOGLE_CLIENT_ID,
+              process.env.GOOGLE_CLIENT_SECRET,
+              'http://c6399cce.ngrok.io/createCalendar/callback'
+            );
+            oauth2Client.setCredentials(tokens);
+            console.log("dates", startDate, endDate);
+            return calendar.events.list({
+              auth: oauth2Client,
+              calendarId: 'primary',
+              timeMin: startDate.toISOString(),
+              timeMax: endDate.toISOString()
+            }, function(err, response) {
+              allResponses = allResponses.concat(response.items);
+              callback();
+            })
+          })
+        } else {
+          callback();
+        }
+      }, function(err) {
+        calendar.events.list({
+          auth: oauth2ClientOriginal,
+          calendarId: 'primary',
+          timeMin: startDate.toISOString(),
+          timeMax: endDate.toISOString()
+        }, function(err, response) {
+          response.items = response.items.concat(allResponses);
+          console.log("MY RESPONSE", response.items);
+          var bestSlots = returnBestSlots(payload, response);
+          res.send({
+            options: bestSlots
+          })
+         })
       })
-     })
+
+    })
+    .catch(function(err) {
+      console.log("ERR", err);
+    })
+
   })
 
 

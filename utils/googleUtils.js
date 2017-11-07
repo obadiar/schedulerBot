@@ -13,7 +13,7 @@ function createGoogleCalendar(tokens, title, date, attendees) {
     'http://a5bb9b3d.ngrok.io/createCalendar/callback'
   );
   oauth2Client.setCredentials(tokens);
-  date = date.setHours(date.getHours() + 7);
+  // date = date.setHours(date.getHours() + 8);
   var endDate = new Date(date);
   endDate.setMinutes(endDate.getMinutes() + 30);
   date = new Date(date);

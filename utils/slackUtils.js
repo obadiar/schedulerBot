@@ -10,7 +10,6 @@ var oauth2Client = new OAuth2(
 var calendar = google.calendar('v3');
 function sendInteractiveMessage(token, channel, response, tokens) {
   if(!response.result.actionIncomplete) {
-
     if(response.result.parameters["invitees"] && response.result.parameters["date-time"]) {
         var oauth2Client = new OAuth2(
           process.env.GOOGLE_CLIENT_ID,
@@ -26,12 +25,10 @@ function sendInteractiveMessage(token, channel, response, tokens) {
 
 
         dateTime = new Date(dateTime);
-        var time = dateTime.getHours() + 7;
-
-        dateTime.setHours(dateTime.getHours() + 7);
+        var time = dateTime.getHours() + 8;
+        dateTime.setHours(dateTime.getHours() + 8);
 
         var endDate = new Date(dateTime);
-
         endDate.setMinutes(endDate.getMinutes() + 30);
         calendar.events.list({
           auth: oauth2Client,
@@ -44,12 +41,12 @@ function sendInteractiveMessage(token, channel, response, tokens) {
                {
                    "text": "Create meeting to discuss " + subject + ' with ' + invitees.join(', ')+' on ' + date + ' at ' + time+ '.00?',
                    "fallback": "You are unable to choose a value.",
-                   "callback_id": "event_choice",
+                   "callback_id": JSON.stringify({invitees}),
                    "color": "#3AA3E3 ",
                    "attachment_type": "default",
                    "title": subject,
                    "author_name": dateTime,
-                   "pretext": JSON.stringify({invitees}),
+                   "value": JSON.stringify({invitees}),
                    "actions": [
                        {
                            "name": "yes_no",
@@ -91,7 +88,7 @@ function sendInteractiveMessage(token, channel, response, tokens) {
                   ];
                   IM = JSON.stringify(IM)
                   axios({
-                    url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text='+'Maddy' + '&attachments='+encodeURIComponent(IM),
+                    url: 'https://slack.com/api/chat.postMessage?token=' + token + '&channel='+channel+'&text='+'Maddy says you have a time conflict' + '&attachments='+encodeURIComponent(IM),
                     method: "get"
                 })
           }
@@ -103,7 +100,7 @@ function sendInteractiveMessage(token, channel, response, tokens) {
       var todoItem = response.result.parameters["subject"];
       var time = response.result.parameters["date"];
       var date = new Date(time);
-      date = date.setHours(date.getHours() + 7);
+      date = date.setHours(date.getHours() + 8);
       var finalDate = new Date(date);
       var endDate = new Date(date);
       endDate.setMinutes(endDate.getMinutes() + 10);
