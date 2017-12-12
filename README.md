@@ -1,2 +1,2 @@
 # schedulerBot
-We are making a bot for Horizons fun.
+A intelligent Slackbot that runs on Node.js and uses Natural Language Parsing to interpret user queries and create Google Calendar events.
